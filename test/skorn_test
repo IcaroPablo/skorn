@@ -1,0 +1,36 @@
+#!/bin/sh
+
+# identificar o termo a ser completado: inicialmente uma string simples ($1)
+# sem espaços
+# apenas relativa path
+# sem filtrar apenas o último nome (depois do último slash) -> usar a opção -path
+# exibir matches iguais até o último caractere comum
+
+# separar o bloco de texto com o path (se é que ele existe) (posteriormente no meio da linha)
+# mv path/to/dir/file path/to/dir2 -> prefix = mv path/to/dir/file & query = path/to/dir2
+full_path_to_query="$(echo "$1" | awk '{print $NF}')"
+echo "full path to query:" "$full_path_to_query"
+
+query="$(echo "$full_path_to_query" | sed 's/.*\///' | sed 's/.*[[:space:]]//')"
+echo "query:" "$query"
+
+prefix_path="$(echo "$full_path_to_query" | sed "s/$query//")" # para ser usado no find
+echo "prefix path:" "$prefix_path"
+
+prefix="$(echo "$1" | sed "s-$full_path_to_query--")"
+echo "prefix:" "$prefix"
+# prefix="$(echo "$1" | sed 's|/[^/]*$||')" 
+# prefix="$(echo "$prefix" | sed 's/\([^[:space:]]*[[:space:]][^[:space:]]*\).*$/\1/')"
+
+if [ "$prefix_path" = "" ]; then
+    prefix_path="$(pwd)"
+fi
+
+# todo: lidar com mais de um resultado na busca
+# result="$(find . -maxdepth 1 \( -type f -o -type d \) -name "$query*" | sed 's/\.\///' | sed 's/ /\\ /g')"
+result="$(find "$prefix_path" -maxdepth 1 \( -type f -o -type d \) -name "$query*" | sed 's/\.\///' | sed 's/ /\\ /g')"
+cwd="$(pwd)"
+result="$(echo "$result" | sed "s-^$cwd/--")"
+
+# echo "$result" | sed 's/\.\///' | sed 's/ /\\ /g'
+echo "$prefix" | sed "s-\$-$result-"
